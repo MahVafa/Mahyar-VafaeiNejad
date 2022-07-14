@@ -2,8 +2,7 @@
 """
 Created on Sat Jul  2 19:36:11 2022
 
-@author: mahkam
-"""
+
 import numpy as np
 # In[]: Generating Data
 x =[1,2,3,4,5,9,20]
