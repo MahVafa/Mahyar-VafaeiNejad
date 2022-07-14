@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Jun 26 19:19:35 2022
-
-@author: mahkam
-"""
 
 def Fibo(n):
     fibo = [0,1]
