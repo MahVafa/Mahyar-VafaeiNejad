@@ -1,0 +1,44 @@
+Create database Groceries
+drop database Groceries
+---------------------
+Use HRBusiness
+Create table managers (manager_ID int identity(1,1) Primary key,
+manager_name nvarchar(max) not null,
+manager_family nvarchar(50) null)
+---------------------
+Set identity_insert managers on
+Insert into managers (manager_id,manager_name,manager_family) values (4, 'David','Fincher')
+Insert into managers (manager_id,manager_name,manager_family) values (5, 'John','Nash')
+Insert into managers (manager_id,manager_name,manager_family) values (6, 'Scottie','Barnes')
+Insert into managers (manager_id,manager_name,manager_family) values (7, 'Rebert','Kiosaki')
+Insert into managers (manager_id,manager_name,manager_family) values (8, 'Hamid','Khorramshahi')
+Insert into managers (manager_id,manager_name,manager_family) values (9, 'Reza','Ayati')
+Insert into managers (manager_id,manager_name,manager_family) values (10, 'Nasim','Rostami')
+Set identity_insert managers off
+---------------------
+Update  employees set manager_id = 1 where manager_id = 100
+Update  employees set manager_id = 2 where manager_id = 101
+Update  employees set manager_id = 3 where manager_id = 102
+Update  employees set manager_id = 4 where manager_id = 103
+Update  employees set manager_id = 5 where manager_id = 108
+Update  employees set manager_id = 6 where manager_id = 114
+Update  employees set manager_id = 7 where manager_id = 120
+Update  employees set manager_id = 8 where manager_id = 123
+Update  employees set manager_id = 9 where manager_id = 201
+Update  employees set manager_id = 10 where manager_id = 205
+Update employees set manager_id = 1  where manager_id is null
+---------------------
+Select * from managers
+Select first_name + ' ' + last_name as Full_name, email, salary from employees
+Select job_title , min_salary, max_salary from jobs where job_title = 'Programmer'
+Select job_title , min_salary, max_salary from jobs where job_title Like '%Clerk%'
+Select * from employees where phone_number Like '515%'
+Select * from employees where salary > 16000
+Select * from employees where salary between 10001 and 15000
+Select * from employees where salary in (3000,8000)
+Select * from employees where salary > 10000 and hire_date like '1994%'
+Select * from employees where salary < 3000 or hire_date like '1998%'
+Select * from jobs where job_title Not like '%Accountant%' 
+--use Bikes
+--Select product_id, avg (discount) as AverageDiscount from sales.order_items Group By product_id order by AverageDiscount desc
+Select first_name, last_name, salary from employees order by salary
