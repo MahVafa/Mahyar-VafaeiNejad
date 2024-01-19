@@ -1,0 +1,41 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+k = 3
+kmeans = KMeans(n_clusters = k)
+df_Autumn = pd.read_excel(r'C:\Users\mahkam\Desktop\Python Exercises\Data Mining\Clustering\Autumn1402.xlsx')
+df_grouped_Cust_Money = df_Autumn.groupby('کد مشتری')['مبلغ ناخالص حواله'].sum().reset_index()
+df_grouped_Cust_Voucher = df_Autumn.groupby('کد مشتری')['شماره حواله'].nunique().reset_index()
+df_grouped_Cust_Recency = df_Autumn.groupby('کد مشتری')['تاریخ توزیع'].max().reset_index()
+df_merged = df_grouped_Cust_Voucher.merge(df_grouped_Cust_Recency,on = 'کد مشتری').merge(df_grouped_Cust_Money,on='کد مشتری')
+df_DateAutumn = pd.read_excel(r'C:\Users\mahkam\Desktop\Python Exercises\Data Mining\Clustering\AutumnDates.xlsx')
+df_final_merged = pd.merge(df_merged,df_DateAutumn,how = 'inner')
+df_final_merged.rename(columns = {'کد مشتری':'Cust_Code','شماره حواله':'Frequency','تاریخ توزیع':'Order_Date','مبلغ ناخالص حواله':'Monetary','روز':'Recency'},inplace=True)
+df_final_normalized = df_final_merged.copy()
+df_final_merged.drop(columns = ['Order_Date'], inplace = True)
+df_final_normalized.drop(columns = ['Order_Date'], inplace = True)
+for i in range(df_final_merged.shape[0]):
+    for j in range(1,4):      
+        df_final_normalized.iloc[i,j] = (df_final_merged.iloc[i,j] - np.mean(df_final_merged.iloc[:,j]))/(np.std(df_final_merged.iloc[:,j]))
+df_withno_outliers_normalized = df_final_normalized[(df_final_normalized.Frequency<=3) & (df_final_normalized.Frequency>=-3)]
+df_withno_outliers_normalized = df_withno_outliers_normalized[(df_final_normalized.Monetary<=3) & (df_final_normalized.Monetary>=-3)]
+df_withno_outliers_normalized = df_withno_outliers_normalized[(df_final_normalized.Recency<=3) & (df_final_normalized.Recency>=-3)]
+y_pred = kmeans.fit_predict(df_withno_outliers_normalized.iloc[:,1:4]).reshape(df_withno_outliers_normalized.shape[0],1)
+Clustering_results = np.append(np.array(df_withno_outliers_normalized.iloc[:,0]).reshape(y_pred.shape[0],1),y_pred,axis = 1)
+df_results = pd.DataFrame(Clustering_results)
+#df_results.to_excel('AutumnSegments.xlsx')
+color_map = ['Red','Green','Blue']
+markers = ['^','o','x']
+
+# 3D plot of Clusters:
+plt.figure()
+ax = plt.axes(projection = '3d')
+p3d = ax.scatter(df_withno_outliers_normalized.iloc[y_pred == 0,1], df_withno_outliers_normalized.iloc[y_pred == 0,2], df_withno_outliers_normalized.iloc[y_pred == 0,3], s=30, c=color_map[0], marker=markers[0],label = 'Slipping')                                                                                
+p3d1 = ax.scatter(df_withno_outliers_normalized.iloc[y_pred == 1,1], df_withno_outliers_normalized.iloc[y_pred == 1,2], df_withno_outliers_normalized.iloc[y_pred == 1,3], s=30, c=color_map[1], marker=markers[1], label = 'Promising')
+p3d2 = ax.scatter(df_withno_outliers_normalized.iloc[y_pred == 2,1], df_withno_outliers_normalized.iloc[y_pred == 2,2], df_withno_outliers_normalized.iloc[y_pred == 2,3], s=30, c=color_map[2], marker=markers[2], label = 'Loyal')
+ax.set_xlabel('Frequency')
+ax.set_ylabel('Monetary')
+ax.set_zlabel('Recency')
+plt.legend(loc = 'upper right')
+plt.title('Customer Segmentation')
