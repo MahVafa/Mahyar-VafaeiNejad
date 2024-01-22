@@ -1,0 +1,276 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import folium as fol
+from folium.plugins import BeautifyIcon
+color = ['Black','khaki','deeppink','blue','aquamarine','orange','olive','lime']
+df_source = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\لت و لانگ مشتریان.xlsx')
+df_source1 = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\فاصله مشتریان از شعب\Tehran Cust.xlsx')
+df_source2 = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\فاصله مشتریان از شعب\Rasht Cust.xlsx')
+df_source3 = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\فاصله مشتریان از شعب\Shiraz Cust.xlsx')
+df_source4 = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\فاصله مشتریان از شعب\Ahwaz Cust.xlsx')
+df_source5 = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\فاصله مشتریان از شعب\Isfahan Cust.xlsx')
+df_source6 = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\فاصله مشتریان از شعب\Mashhad Cust.xlsx')
+df_source7 = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\فاصله مشتریان از شعب\Ghom Cust.xlsx')
+df_source8 = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\فاصله مشتریان از شعب\Tabriz Cust.xlsx')
+
+
+#df_source = df_source.drop('Distance',axis = 1)
+#df_source = df_source.drop('Interval',axis = 1)
+df_source.dropna(inplace = True)
+listicons = [None] * 8
+map1 = fol.Map(location=[35.72458, 51.24191], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+################################Tehran
+
+
+
+
+
+# Plotting Branch Points
+# for i in range(np.size(color)):
+#     listicons[i] = BeautifyIcon(
+#     icon='star',
+#     inner_icon_style='font-size:9px',
+#     border_color= color[i],
+#     fill_color= color[i],
+# )
+
+listicons = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:9px',
+    border_color= color,
+    fill_color= color,
+)
+
+
+for k in range(df_source1.shape[0]):
+    fol.Circle([df_source1.iloc[k,1],df_source1.iloc[k,0]],radius = 0.001,
+                                 color = 'gray',
+                                 fill_color = 'gray',
+                                 fill_opacity = 0.4,).add_to(map1)
+
+fol.Marker([35.72457637, 51.2419115],popup = "Optimal_Points").add_to(map1)    
+fol.Circle([35.72457637, 51.2419115],radius = 1000,
+           color = 'yellow',
+           fill_color = 'white',
+           fill_opacity = 0.01,).add_to(map1)
+   
+# Plotting Customer Points
+
+
+map1.save('map1.html')
+
+
+
+################################ Rasht
+map2 = fol.Map(location=[37.2948713, 49.59897163], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+listicons = BeautifyIcon(
+    icon='circle',
+    inner_icon_style='font-size:9px',
+    border_color= color,
+    fill_color= color,
+)
+
+
+for k in range(df_source2.shape[0]):
+    fol.Circle([df_source2.iloc[k,1],df_source2.iloc[k,0]],radius = 0.001,
+                                 color = 'gray',
+                                 fill_color = 'gray',
+                                 fill_opacity = 0.4,).add_to(map2)
+
+fol.Marker([37.2948713, 49.59897163],popup = "Optimal_Points").add_to(map2)    
+fol.Circle([37.2948713, 49.59897163],radius = 1000,
+           color = 'red',
+           fill_color = 'white',
+           fill_opacity = 0.01,).add_to(map2)
+   
+# Plotting Customer Points
+
+
+map2.save('map2.html')
+
+
+
+
+
+################################  Shiraz
+map3 = fol.Map(location=[29.48637332, 52.71098529], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+listicons = BeautifyIcon(
+    icon='square',
+    inner_icon_style='font-size:9px',
+    border_color= color,
+    fill_color= color,
+)
+
+
+for k in range(df_source3.shape[0]):
+    fol.Circle([df_source3.iloc[k,1],df_source3.iloc[k,0]],radius = 0.001,
+                                 color = 'gray',
+                                 fill_color = 'gray',
+                                 fill_opacity = 0.4,).add_to(map3)
+
+fol.Marker([29.48637332, 52.71098529],popup = "Optimal_Points",icon = listicons).add_to(map3)    
+fol.Circle([29.48637332, 52.71098529],radius = 1000,
+           color = 'aquamarine',
+           fill_color = 'white',
+           fill_opacity = 0.01,).add_to(map3)
+   
+# Plotting Customer Points
+
+
+map3.save('map3.html')
+
+
+
+
+
+
+
+################################ Ahwaz
+map4 = fol.Map(location=[31.40714187, 48.73050251], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+listicons = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:9px',
+    border_color= color,
+    fill_color= color,
+)
+
+
+for k in range(df_source4.shape[0]):
+    fol.Circle([df_source4.iloc[k,1],df_source4.iloc[k,0]],radius = 0.001,
+                                 color = 'gray',
+                                 fill_color = 'gray',
+                                 fill_opacity = 0.4,).add_to(map4)
+
+fol.Marker([31.40714187, 48.73050251],popup = "Optimal_Points",icon = listicons).add_to(map4)    
+fol.Circle([31.40714187, 48.73050251],radius = 1000,
+           color = 'aquamarine',
+           fill_color = 'white',
+           fill_opacity = 0.01,).add_to(map4)
+   
+# Plotting Customer Points
+
+
+map4.save('map4.html')
+
+
+
+################################ Isfahan
+map5 = fol.Map(location=[32.6728368,51.62256894], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+listicons = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:9px',
+    border_color= color,
+    fill_color= color,
+)
+
+
+for k in range(df_source5.shape[0]):
+    fol.Circle([df_source5.iloc[k,1],df_source5.iloc[k,0]],radius = 0.001,
+                                 color = 'gray',
+                                 fill_color = 'gray',
+                                 fill_opacity = 0.4,).add_to(map5)
+
+fol.Marker([32.6728368,51.62256894],popup = "Optimal_Points",icon = listicons).add_to(map5)    
+fol.Circle([32.6728368,51.62256894],radius = 1000,
+           color = 'aquamarine',
+           fill_color = 'white',
+           fill_opacity = 0.01,).add_to(map5)
+   
+# Plotting Customer Points
+
+
+map5.save('map5.html')
+
+
+################################ Mashhad
+map6 = fol.Map(location=[36.33387611,59.54299126], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+listicons = BeautifyIcon(
+    icon='square',
+    inner_icon_style='font-size:9px',
+    border_color= color,
+    fill_color= color,
+)
+
+
+for k in range(df_source6.shape[0]):
+    fol.Circle([df_source6.iloc[k,1],df_source6.iloc[k,0]],radius = 0.001,
+                                 color = 'gray',
+                                 fill_color = 'gray',
+                                 fill_opacity = 0.4,).add_to(map6)
+
+fol.Marker([36.33387611,59.54299126],popup = "Optimal_Points").add_to(map6)    
+fol.Circle([36.33387611,59.54299126],radius = 1000,
+           color = 'Blue',
+           fill_color = 'white',
+           fill_opacity = 0.01,).add_to(map6)
+   
+# Plotting Customer Points
+
+
+map6.save('map6.html')
+
+
+
+
+################################ Ghom
+map7 = fol.Map(location=[34.54495725,50.91992055], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+listicons = BeautifyIcon(
+    icon='square',
+    inner_icon_style='font-size:9px',
+    border_color= color,
+    fill_color= color,
+)
+
+
+for k in range(df_source7.shape[0]):
+    fol.Circle([df_source7.iloc[k,1],df_source7.iloc[k,0]],radius = 0.001,
+                                 color = 'gray',
+                                 fill_color = 'gray',
+                                 fill_opacity = 0.4,).add_to(map7)
+
+fol.Marker([34.54495725,50.91992055],popup = "Optimal_Points",icon = listicons).add_to(map7)    
+fol.Circle([34.54495725,50.91992055],radius = 3000,
+           color = 'orange',
+           fill_color = 'white',
+           fill_opacity = 0.01,).add_to(map7)
+   
+# Plotting Customer Points
+
+
+map7.save('map7.html')
+
+
+################################ Tabriz
+map8 = fol.Map(location=[38.0773411,46.75993501], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+listicons = BeautifyIcon(
+    icon='square',
+    inner_icon_style='font-size:9px',
+    border_color= color,
+    fill_color= color,
+)
+
+
+for k in range(df_source8.shape[0]):
+    fol.Circle([df_source8.iloc[k,1],df_source8.iloc[k,0]],radius = 0.001,
+                                 color = 'gray',
+                                 fill_color = 'gray',
+                                 fill_opacity = 0.4,).add_to(map8)
+
+fol.Marker([38.0773411,46.75993501],popup = "Optimal_Points",icon = listicons).add_to(map8)    
+fol.Circle([38.0773411,46.75993501],radius = 3000,
+           color = 'orange',
+           fill_color = 'white',
+           fill_opacity = 0.01,).add_to(map8)
+   
+# Plotting Customer Points
+
+
+map8.save('map8.html')
