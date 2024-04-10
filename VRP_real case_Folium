@@ -1,0 +1,214 @@
+import random
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import math
+import folium as fol
+from folium.plugins import BeautifyIcon
+import geopy.distance
+Ite1=600
+Ite2=600
+T=1000
+Alpha=0.95
+V=8
+D=70
+Source = pd.read_excel(r'C:\Users\mahkam\Downloads\Mashhad Cust.xlsx').iloc[0:D,:]
+Distance2=np.zeros((D,D))
+Distance1=np.zeros((1,D))
+np.random.seed(seed=1)
+Demands = np.random.randint(10,15,D)
+np.random.seed(seed=1)
+Capacity = np.random.randint(200,250,V)
+usedcap = np.zeros(V,)
+np.random.seed(seed=1)
+# xd=np.random.randint(0,900,D)
+# np.random.seed(seed=1)
+# yd=np.random.randint(0,1200,D)
+depot = (36.393943, 59.499441)
+x0=450
+y0=600
+Costs=[]
+BestSols=[]
+Iterations=[]
+MinCosts=[]
+np.random.seed(seed=1)
+a=np.random.randint(50,100)
+b=np.random.randint(120,170)
+S=60
+n=V+D-1
+M=10000
+coords = pd.DataFrame(0, index = range(D), columns = ('Lat','Lon'))
+for i in range(D):
+    coords.iloc[i,:] = (Source.iloc[i,1], Source.iloc[i,0])
+for i in range(D):
+           Distance1[0,i] = geopy.distance.geodesic(tuple(coords.iloc[i,:]),tuple(depot)).km
+           for j in range(D):
+               if i == j:
+                   Distance2[i,j] = 0
+               else:
+                   Distance2[i,j] = geopy.distance.geodesic(tuple(coords.iloc[i,:]),tuple(coords.iloc[j,:])).km
+                   Distance2[j,i] = Distance2[i,j]
+       
+def RandomSol(n):
+       randsol = np.random.permutation(n) + 1
+       return randsol
+def Insertion(arr):
+       r = random.sample(range(np.size(arr)),2)
+       r1 = np.min(r)
+       r2 = np.max(r)
+       result = arr.copy()
+       result = np.insert(result,0,arr[r2])
+       result = np.append(result,arr[r1])
+       result = np.delete(result,r1+1)
+       result = np.delete(result,r2)
+       return result
+def Reversion(arr):
+       r = random.sample(range(np.size(arr)),2)
+       r1 = np.min(r)
+       r2 = np.max(r)
+       result = arr.copy()
+       sliced = arr[r1:r2+1]
+       result[r1:r2+1] = sliced[::-1]
+       return result
+def Swap(arr):
+       r = random.sample(range(np.size(arr)),2)
+       r1 = np.min(r)
+       r2 = np.max(r)
+       result = arr.copy()
+       Temp = 0
+       Temp = result[r1]
+       result[r1] = result[r2]
+       result[r2] = Temp
+       return result
+def Rnd_Sel_Con(arr):
+       rand = np.random.rand()
+       if rand < 0.45:
+           return Reversion(arr)
+       elif (rand > 0.45 and rand < 0.64):
+           return Insertion(arr)
+       else:
+           return Swap(arr)
+def SA_VRP_Cost(Solution):
+       F = True
+       Viol1 = np.zeros(V)
+       Viol = 0
+       # global F
+       L = [[] for i in range(V)]
+       Sep_ind = []
+       Array_Range = np.arange(1,n+1)
+       Sep_ind = Solution[Solution > D].tolist()
+       v = 0
+       for i in range(len(Solution)):
+           if Solution[i] not in Sep_ind:
+               L[v].append(Solution[i])
+           else:
+               v += 1              
+       Tra_Dis = np.zeros(V,)
+       for l in range(len(L)):
+           if np.size(L[l]) == 1:
+               Tra_Dis[l] = 2 * Distance1[0,L[l][0]-1]
+           elif np.size(L[l]) == 0:
+               Tra_Dis[l] = 0
+           else:
+               Tra_Dis[l] = Distance1[0,L[l][0]-1] + Distance1[0,L[l][-1]-1]
+               for d in range(np.size(L[l])-1):
+                   Tra_Dis[l] += Distance2[L[l][d]-1,L[l][d+1]-1]
+       Z1 = np.sum(Tra_Dis)
+       Z2 = np.max(Tra_Dis)
+       for l in range(V):
+           # for k in range(len(L[l])):
+           #      usedcap[l] += Demands[L[l][k]-1]
+           usedcap[l] = sum(Demands[k-1] for k in L[l])
+               # print(usedcap)
+           if usedcap[l] > Capacity[l]:
+               Viol1[l] = usedcap[l] - Capacity[l]
+               Viol += Viol1[l]    
+       if Viol > 0:
+           F = False
+                       
+       z = 4 * Z1 +   0 * Z2
+       Z = z * (1 + Viol * M)
+       return Z ,F, L, Viol1          
+   
+Sol = RandomSol(n)        
+BestCost = SA_VRP_Cost(Sol)[0]
+Costs.append(BestCost)
+BestSols.append(Sol)
+for k in range(Ite1):
+     Iterations.append(k + 1)
+     # Sol = RandomSol(n)
+     for i in range(Ite2):
+         NewSol = Rnd_Sel_Con(Sol)
+         NewSol_Cost = SA_VRP_Cost(NewSol)[0]
+         Costs.append(NewSol_Cost)
+         if NewSol_Cost <= BestCost:
+             Sol = NewSol
+             BestCost = NewSol_Cost
+             BestSols.append(NewSol)
+             F = SA_VRP_Cost(NewSol)[1]
+#             V = SA_Cost(NewSol,V,D)[6]
+             # Sol = NewSol
+         else:
+             rn = np.random.rand()
+             Delta = NewSol_Cost - BestCost
+             if rn <= np.exp((-1*Delta)/T):
+                 BestSols.append(NewSol)
+                 F = SA_VRP_Cost(NewSol)[1]
+#                V = SA_Cost(NewSol,V,D)[6]
+                 # Sol = NewSol
+     print("THE BEST Cost IN ITER {} and Temp {} is: {}--Feasibility:{} ".format(k+1,T,BestCost,F))
+     T = T * Alpha
+     MinCosts.append(BestCost)
+plt.plot(Iterations,MinCosts,'g--')
+plt.title('Cost Changes By Iterations')
+plt.xlabel('Iterations')
+plt.ylabel('Costs')
+plt.show()
+#plt.figure()
+# plt.plot(xd,yd,'ro')
+# plt.plot(x0,y0,'y^',markersize=22)
+
+# def generate_random_color():
+#     np.random.seed(seed=1)
+#     r = random.random()
+#     g = random.random()
+#     b = random.random()
+#     return (r, g, b)
+
+# colors =  [generate_random_color() for i in range(V)]
+# colors = ['r','g','b','c','k','m','w']
+color = ['blue', 'salmon', 'limegreen', 'sienna', 'darkviolet', 'darkkhaki', 'darkcyan', 'turquoise', 'lime', 'gold', 'olive','crimson']
+
+L = SA_VRP_Cost(BestSols[-1])[2]
+listicons0 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[5],
+    fill_color= color[5],
+)
+
+
+
+
+map = fol.Map(location=[depot[0],depot[1]], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+icons_dict = {0:listicons0}
+
+             
+fol.Marker([depot[0],depot[1]],popup = 'Depot',icon = icons_dict[0]).add_to(map)
+for i in range(D):  
+       fol.Circle([coords.iloc[i-1,0],coords.iloc[i-1,1]],radius = 20,
+                                      color = color[11],
+                                      fill_color = color[11],
+                                      fill_opacity = 0.8).add_child(fol.Popup(str(i))).add_to(map)
+   
+
+for r in range(len(L)):
+    if np.size(L[r]) != 0:
+       for j in range(np.size(L[r])-1):
+           fol.PolyLine([[coords.iloc[L[r][j]-1,0],coords.iloc[L[r][j]-1,1]],[coords.iloc[L[r][j+1]-1,0],coords.iloc[L[r][j+1]-1,1]]],color = color[r]).add_to(map)
+           
+                           
+                                   
+
+map.save('VRP_SA_Routes.html')
