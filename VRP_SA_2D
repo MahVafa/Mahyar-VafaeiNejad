@@ -1,0 +1,181 @@
+import random
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import math
+Ite1=600
+Ite2=600
+T=1000
+Alpha=0.95
+V=5
+D=65
+Distance2=np.zeros((D,D))
+Distance1=np.zeros((1,D))
+np.random.seed(seed=1)
+Demands = np.random.randint(10,15,D)
+np.random.seed(seed=1)
+Capacity = np.random.randint(150,250,V)
+usedcap = np.zeros(V,)
+np.random.seed(seed=1)
+xd=np.random.randint(0,900,D)
+np.random.seed(seed=1)
+yd=np.random.randint(0,1200,D)
+x0=450
+y0=600
+Costs=[]
+BestSols=[]
+Iterations=[]
+MinCosts=[]
+np.random.seed(seed=1)
+a=np.random.randint(50,100)
+b=np.random.randint(120,170)
+S=60
+n=V+D-1
+M=10000
+for i in range(D):
+           Distance1[0,i]=math.sqrt((xd[i]-x0)**2+(yd[i]-y0)**2)
+           for j in range(D):
+               if i == j:
+                   Distance2[i,j] = 0
+               else:
+                   Distance2[i,j] = math.sqrt((xd[i]-xd[j])**2+(yd[i]-yd[j])**2)
+                   Distance2[j,i]=Distance2[i,j]
+       
+def RandomSol(n):
+       randsol = np.random.permutation(n) + 1
+       return randsol
+def Insertion(arr):
+       r = random.sample(range(np.size(arr)),2)
+       r1 = np.min(r)
+       r2 = np.max(r)
+       result = arr.copy()
+       result = np.insert(result,0,arr[r2])
+       result = np.append(result,arr[r1])
+       result = np.delete(result,r1+1)
+       result = np.delete(result,r2)
+       return result
+def Reversion(arr):
+       r = random.sample(range(np.size(arr)),2)
+       r1 = np.min(r)
+       r2 = np.max(r)
+       result = arr.copy()
+       sliced = arr[r1:r2+1]
+       result[r1:r2+1] = sliced[::-1]
+       return result
+def Swap(arr):
+       r = random.sample(range(np.size(arr)),2)
+       r1 = np.min(r)
+       r2 = np.max(r)
+       result = arr.copy()
+       Temp = 0
+       Temp = result[r1]
+       result[r1] = result[r2]
+       result[r2] = Temp
+       return result
+def Rnd_Sel_Con(arr):
+       rand = np.random.rand()
+       if rand < 0.45:
+           return Reversion(arr)
+       elif (rand > 0.45 and rand < 0.50):
+           return Insertion(arr)
+       else:
+           return Swap(arr)
+def SA_VRP_Cost(Solution):
+       F = True
+       Viol1 = np.zeros(V)
+       Viol = 0
+       # global F
+       L = [[] for i in range(V)]
+       Sep_ind = []
+       Array_Range = np.arange(1,n+1)
+       Sep_ind = Solution[Solution > D].tolist()
+       v = 0
+       for i in range(len(Solution)):
+           if Solution[i] not in Sep_ind:
+               L[v].append(Solution[i])
+           else:
+               v += 1              
+       Tra_Dis = np.zeros(V,)
+       for l in range(len(L)):
+           if np.size(L[l]) == 1:
+               Tra_Dis[l] = 2 * Distance1[0,L[l][0]-1]
+           elif np.size(L[l]) == 0:
+               Tra_Dis[l] = 0
+           else:
+               Tra_Dis[l] = Distance1[0,L[l][0]-1] + Distance1[0,L[l][-1]-1]
+               for d in range(np.size(L[l])-1):
+                   Tra_Dis[l] += Distance2[L[l][d]-1,L[l][d+1]-1]
+       Z1 = np.sum(Tra_Dis)
+       Z2 = np.max(Tra_Dis)
+       for l in range(V):
+           # for k in range(len(L[l])):
+           #      usedcap[l] += Demands[L[l][k]-1]
+           usedcap[l] = sum(Demands[k-1] for k in L[l])
+               # print(usedcap)
+           if usedcap[l] > Capacity[l]:
+               Viol1[l] = usedcap[l] - Capacity[l]
+               Viol += Viol1[l]    
+       if Viol > 0:
+           F = False
+                       
+       z = 1 * Z1 +   1 * Z2
+       Z = z * (1 + Viol * M)
+       return Z ,F, L, Viol1          
+   
+Sol = RandomSol(n)        
+BestCost = SA_VRP_Cost(Sol)[0]
+Costs.append(BestCost)
+BestSols.append(Sol)
+for k in range(Ite1):
+     Iterations.append(k + 1)
+     # Sol = RandomSol(n)
+     for i in range(Ite2):
+         NewSol = Rnd_Sel_Con(Sol)
+         NewSol_Cost = SA_VRP_Cost(NewSol)[0]
+         Costs.append(NewSol_Cost)
+         if NewSol_Cost <= BestCost:
+             Sol = NewSol
+             BestCost = NewSol_Cost
+             BestSols.append(NewSol)
+             F = SA_VRP_Cost(NewSol)[1]
+#             V = SA_Cost(NewSol,V,D)[6]
+             # Sol = NewSol
+         else:
+             rn = np.random.rand()
+             Delta = NewSol_Cost - BestCost
+             if rn <= np.exp((-1*Delta)/T):
+                 BestSols.append(NewSol)
+                 F = SA_VRP_Cost(NewSol)[1]
+#                V = SA_Cost(NewSol,V,D)[6]
+                 # Sol = NewSol
+     print("THE BEST Cost IN ITER {} and Temp {} is: {}--Feasibility:{} ".format(k+1,T,BestCost,F))
+     T = T * Alpha
+     MinCosts.append(BestCost)
+plt.plot(Iterations,MinCosts,'g--')
+plt.title('Cost Changes By Iterations')
+plt.xlabel('Iterations')
+plt.ylabel('Costs')
+plt.show()
+plt.figure()
+plt.plot(xd,yd,'r*',markersize=10)
+plt.plot(x0,y0,'g^',markersize=22)
+
+
+colors = ['red','darkkhaki','green','lime','firebrick','springgreen','indigo','deeppink','crimson','peachpuff','magenta','black','olive']
+
+L = SA_VRP_Cost(BestSols[-1])[2]
+# for l in range(len(L)):
+for l in range(V):
+    for e in range(len(L[l])):
+        plt.text(xd[L[l][e]-1],yd[L[l][e]-1],"{}".format(L[l][e]),fontsize=18,fontweight='bold',color='black')  
+    if np.size(L[l]) != 0:
+        plt.plot([xd[L[l][0]-1],x0],[yd[L[l][0]-1],y0],colors[l],linestyle = '--',markersize=9)
+        plt.plot([xd[L[l][-1]-1],x0],[yd[L[l][-1]-1],y0],colors[l],linestyle = '--',markersize=9)
+        for c in range(len(L[l])-1):
+            plt.plot([xd[L[l][c]-1],xd[L[l][c+1]-1]],[yd[L[l][c]-1],yd[L[l][c+1]-1]],colors[l],markersize=9)
+plt.title('VRP Tours')
+plt.xlabel('X Points')
+plt.ylabel('Y Points')
+plt.show()
+
+
