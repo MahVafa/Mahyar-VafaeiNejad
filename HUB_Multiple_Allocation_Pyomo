@@ -1,0 +1,254 @@
+# In[]: HUB (Multiple-Allocation)
+import pyomo.environ as pyo
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import geopy.distance
+import folium as fol
+from folium.plugins import BeautifyIcon
+import random
+points = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\Optimization Models\HUB\Hub Points.xlsx')
+c = np.shape(points)[0]
+d = np.zeros((c,c))
+W = np.zeros((c,c))
+np.random.seed(seed=1)
+for i in range(np.shape(W)[0]):
+    for j in range(np.shape(W)[1]):
+        if i == j:
+            W[i,j] = 0
+        else:
+            W[i,j] = np.random.randint(50,300)
+W[2,:] = np.random.randint(500,1000)
+W[:,2] = np.random.randint(500,1000)
+W[1,:] = np.random.randint(400,600)
+W[:,1] = np.random.randint(400,600)
+W[1,1] = 0
+W[2,2] = 0
+coords = pd.DataFrame(0, index = range(c), columns = ('Lat','Lon'))
+for i in range(c):
+    coords.iloc[i,:] = (points.iloc[i,2], points.iloc[i,1])
+for i in range(c):
+    for j in range(i,c):
+        if i != j:
+           d[i,j] = geopy.distance.geodesic(tuple(coords.iloc[i,:]),tuple(coords.iloc[j,:])).km
+           d[j,i] = d[i,j]
+        else:
+           d[i,j] == 0
+           
+HUB1 = pyo.ConcreteModel()
+# P = 2
+Alpha = 0.4
+np.random.seed(seed=1)
+C = np.random.randint(40000,60000,c)
+F = np.random.randint(1000000,5000000,c)
+B = 3000000
+HUB1.i = pyo.Set(initialize = [i for i in range(0,c)])
+HUB1.j = pyo.Set(initialize = [j for j in range(0,c)])
+HUB1.k = pyo.Set(initialize = [k for k in range(0,c)])
+HUB1.l = pyo.Set(initialize = [l for l in range(0,c)])
+HUB1.xijkl = pyo.Var(HUB1.i, HUB1.j,HUB1.k,HUB1.l ,bounds=(0,1), domain = pyo.NonNegativeReals)
+HUB1.Hk = pyo.Var(HUB1.k, domain = pyo.Binary)
+
+
+
+HUB1.OBJ = pyo.Objective(expr = pyo.quicksum(HUB1.xijkl[i,j,k,l] * W[i,j] * (d[i,k] + Alpha * d[k,l] + d[l,j]) for (i,j,k,l) in HUB1.i * HUB1.j * HUB1.k * HUB1.l) + pyo.quicksum(HUB1.Hk[k] * F[k] for k in HUB1.k))
+                       
+def rule1(HUB1,i,j):
+    return (pyo.quicksum(HUB1.xijkl[i,j,k,l]  for (k,l) in HUB1.k * HUB1.l) == 1)
+HUB1.Constraint1=pyo.Constraint(HUB1.i, HUB1.j, rule = rule1)
+
+# def rule2(HUB1,k):
+#     return (pyo.quicksum(HUB1.xijkl[i,j,k,l] * W[i,j] for (i,j,l) in HUB1.i * HUB1.j * HUB1.l) <= C[k] * HUB1.Hk[k])
+# HUB1.Constraint2 = pyo.Constraint(HUB1.k, rule = rule2)
+
+def rule3(HUB1):
+    return (pyo.quicksum(HUB1.Hk[k] * F[k] for k in HUB1.k) <= B)
+HUB1.Constraint3=pyo.Constraint(rule = rule3)
+
+def rule4(HUB1, i,j,k,l):
+    return (HUB1.xijkl[i,j,k,l] <= HUB1.Hk[k])
+HUB1.Constraint4=pyo.Constraint(HUB1.i, HUB1.j, HUB1.k, HUB1.l ,rule = rule4)  
+
+def rule5(HUB1, i,j,k,l):
+    return (HUB1.xijkl[i,j,k,l] <= HUB1.Hk[l])
+HUB1.Constraint5=pyo.Constraint(HUB1.i, HUB1.j, HUB1.k, HUB1.l , rule = rule5)                    
+
+# def rule6(HUB1,l):
+#     return (pyo.quicksum(HUB1.xijkl[i,j,k,l] * W[i,j] for (i,j,k) in HUB1.i * HUB1.j * HUB1.k) <= C[l] * HUB1.Hk[l])
+# HUB1.Constraint6 = pyo.Constraint (HUB1.l, rule = rule6)
+
+# for (i,j,k,l) in HUB1.i * HUB1.j * HUB1.k * HUB1.l:
+#     if i == j:
+#         HUB1.xijkl[i,j,k,l].fix(0)
+
+solver = pyo.SolverFactory('cplex')
+solver.options['mipgap'] = 0.01  
+solver.options['timelimit'] = 6000            
+result = solver.solve(HUB1, tee = True)
+result.write()          
+print(result)  
+
+
+map = fol.Map(location=[points.iloc[1,2],points.iloc[1,1]], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+color = ['Olive','Orange','deeppink','light green','Yellow', 'aquamarine']
+
+listicons0 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[1],
+    fill_color= color[1],
+)
+
+listicons1 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[4],
+    fill_color= color[4],
+)
+
+listicons2 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[1],
+    fill_color= color[1],
+)
+
+listicons3 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[3],
+    fill_color= color[3],
+)
+
+listicons4 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[0],
+    fill_color= color[0],
+)
+
+listicons5 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[5],
+    fill_color= color[5],
+)
+
+listicons6 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[5],
+    fill_color= color[5],
+)
+
+listicons7 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[4],
+    fill_color= color[4],
+)
+
+listicons8 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[5],
+    fill_color= color[5],
+)
+
+listicons9 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[0],
+    fill_color= color[0],
+)
+
+listicons10 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[1],
+    fill_color= color[1],
+)
+
+listicons11 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[2],
+    fill_color= color[2],
+)
+
+listicons12 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[3],
+    fill_color= color[3],
+)
+
+listicons13 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[5],
+    fill_color= color[5],
+)
+
+listicons14 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[5],
+    fill_color= color[5],
+)
+
+listicons24 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[5],
+    fill_color= color[5],
+)
+
+
+
+icons_dict = {0:listicons0,1:listicons1,2:listicons2,3:listicons3,4:listicons4,5:listicons5,
+              6:listicons6, 7:listicons7, 8:listicons8, 9:listicons9, 10:listicons10, 11:listicons11, 12:listicons12, 13:listicons13, 14:listicons14, 24:listicons24}
+             
+
+
+for k in range(points.shape[0]):
+    if pyo.value(HUB1.Hk[k]) == 0:
+        fol.Circle([points.iloc[k,2],points.iloc[k,1]],radius = 13000,
+                                      color = color[2],
+                                      fill_color = color[2],
+                                      fill_opacity = 0.8).add_child(fol.Popup(points.iloc[k,0])).add_to(map)
+    else:
+        fol.Marker([points.iloc[k,2],points.iloc[k,1]],popup = points.iloc[k,0],icon = icons_dict[k]).add_to(map)
+       
+
+
+for i in range(points.shape[0]):
+    for j in range(points.shape[0]):
+        for k in range(points.shape[0]):
+            for l in range(points.shape[0]):
+                if pyo.value(HUB1.xijkl[i,j,k,l]) == 1:
+                    fol.PolyLine([[points.iloc[i,2],points.iloc[i,1]],[points.iloc[k,2],points.iloc[k,1]]],color = 'black', dash_array = '10').add_to(map)
+   
+       
+#Connecting Hubs to each other:
+   
+HUB_Connections = pd.DataFrame(False, index = range(c), columns = ['IsHub?'])
+HUBS = []
+for k in range(c):
+    if pyo.value(HUB1.Hk[k]) == 1:
+        HUB_Connections.iloc[k,0] = True
+        HUBS.append(k)
+
+for k1 in range(len(HUBS)):
+    for k2 in range(len(HUBS)):
+        if k1 != k2:
+            fol.PolyLine([[points.iloc[HUBS[k1],2],points.iloc[HUBS[k1],1]],[points.iloc[HUBS[k2],2],points.iloc[HUBS[k2],1]]],color = 'Blue', dash_array = '10').add_to(map)
+# Saving Final Map                  
+map.save('HUBMAP2.html')
+
+# Showing Results
+
+for (j,k,l) in  HUB1.j * HUB1.k * HUB1.l :
+    if pyo.value(HUB1.xijkl[3,j,k,l]) > 0:
+        print (HUB1.xijkl[3,j,k,l],pyo.value(HUB1.xijkl[3,j,k,l]))
