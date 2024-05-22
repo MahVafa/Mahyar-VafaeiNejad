@@ -1,0 +1,219 @@
+ # In[]: VRP1
+import pyomo.environ as pyo
+import folium as fol
+from folium.plugins import BeautifyIcon
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import geopy.distance
+import math
+import random
+Source = pd.read_excel(r'C:\Users\m.vafaeinejad\Desktop\Mahyar Vafaeinejad\فاصله مشتریان از شعب\Mashhad Cust.xlsx')
+Source = Source.iloc[0:25,:]
+c = np.shape(Source)[0]
+d = np.zeros((c,c))
+t = np.zeros((c,c))
+depot = (36.393943, 59.499441)
+coords = pd.DataFrame(0, index = range(c), columns = ('Lat','Lon'))
+for i in range(c):
+    coords.iloc[i,:] = (Source.iloc[i,1], Source.iloc[i,0])
+coords.iloc[0,:] = depot
+coords.iloc[c-1,:] = depot
+np.random.seed(seed=1)
+for i in range(c):
+    for j in range(i,c):
+        if i != j:
+           d[i,j] = geopy.distance.geodesic(tuple(coords.iloc[i,:]),tuple(coords.iloc[j,:])).km
+           d[j,i] = d[i,j]
+           t[i,j] = np.random.randint(1,30)
+           t[j,i] = t[i,j]
+           
+        else:
+           d[i,j] == 0
+t[0,c-1] = t[c-1,0] = 0
+
+
+VRP = pyo.ConcreteModel()
+V = 4
+np.random.seed(seed=1)
+Q = np.random.randint(160,250,V)
+q = np.random.randint(10,16,c)
+q[0] = 0
+q[c-1] = 0
+a = np.random.randint(0,1,c)
+b = np.random.randint(100000,400000,c)
+s = np.random.randint(1,5,c)
+s[0] = s[c-1] = 0
+M = 1000000
+
+
+VRP.h = pyo.Set(initialize = [h for h in range(1,c-1)])
+VRP.i = pyo.Set(initialize = [i for i in range(0,c)])
+VRP.j = pyo.Set(initialize = [j for j in range(0,c)])
+VRP.r = pyo.Set(initialize = [v for v in range(0,V)])
+VRP.Nplus = pyo.Set(initialize = [n for n in range(0,c)])
+VRP.xijr = pyo.Var(VRP.i, VRP.j,VRP.r ,domain = pyo.Binary)
+VRP.yir = pyo.Var(VRP.h,VRP.r, domain = pyo.Binary)
+VRP.tir = pyo.Var(VRP.Nplus, VRP.r, domain = pyo.NonNegativeReals)
+
+VRP.OBJ = pyo.Objective(expr = pyo.quicksum(VRP.xijr[i,j,r] * d[i,j] for (i,j,r) in VRP.i * VRP.j * VRP.r), sense = pyo.minimize)
+
+def rule1(VRP, h,r):
+    return (pyo.quicksum(VRP.xijr[h,j,r]  for j in VRP.j) == VRP.yir[h,r])
+VRP.Constraint1=pyo.Constraint(VRP.h, VRP.r, rule = rule1)
+
+def rule2(VRP, h):
+    return (pyo.quicksum(VRP.yir[h,r] for r in VRP.r) == 1)
+VRP.Constraint2 = pyo.Constraint(VRP.h, rule = rule2)
+
+def rule3(VRP, r):
+    return (pyo.quicksum(VRP.yir[h,r] * q[h] for h in VRP.h) <= Q[r])
+VRP.Constraint3 = pyo.Constraint(VRP.r, rule = rule3)
+
+def rule4(VRP, r):
+    return (pyo.quicksum(VRP.xijr[0,j,r] for j in VRP.j) == 1)
+VRP.Constraint4 = pyo.Constraint(VRP.r, rule = rule4)
+
+def rule5(VRP, r):
+    return (pyo.quicksum(VRP.xijr[h,c-1,r] for h in VRP.h) == 1)
+VRP.Constraint5 = pyo.Constraint(VRP.r, rule = rule5)
+
+def rule6(VRP, h, r):
+    return (pyo.quicksum(VRP.xijr[i,h,r] for i in VRP.i) - pyo.quicksum(VRP.xijr[h,j,r] for j in VRP.j) == 0)
+VRP.Constraint6 = pyo.Constraint(VRP.h, VRP.r, rule = rule6)
+
+def rule7(VRP, r):
+    return (pyo.quicksum(VRP.xijr[0,h,r] for h in VRP.h) == 1)
+VRP.Constraint7 = pyo.Constraint(VRP.r, rule = rule7)
+
+# def rule8(VRP, r):
+#     return (pyo.quicksum(VRP.xijr[c-1,h,r] for h in VRP.h) == 1)
+# VRP.Constraint8 = pyo.Constraint(VRP.r, rule = rule8)
+
+# def rule9(VRP, r):
+#     return (pyo.quicksum(VRP.xijr[h,0,r] for h in VRP.h) == 1)
+# VRP.Constraint9 = pyo.Constraint(VRP.r, rule = rule9)
+
+# def rule10(VRP, r):
+#     return (pyo.quicksum(VRP.xijr[0,j,r] for j in VRP.j)  == 1)
+# VRP.Constraint10 = pyo.Constraint(VRP.r, rule = rule10)
+
+def rule11(VRP, r):
+      return (pyo.quicksum(VRP.xijr[i,c-1,r] for i in VRP.i) == 1)
+VRP.Constraint11 = pyo.Constraint(VRP.r, rule = rule11)
+
+def rule12(VRP, h, r):
+    return (VRP.tir[h,r]  >= VRP.yir[h,r] * a[h])
+VRP.Constraint12=pyo.Constraint(VRP.h, VRP.r, rule = rule12)
+
+def rule13(VRP, h, r):
+    return (VRP.tir[h,r]  <= VRP.yir[h,r] * b[h])
+VRP.Constraint13=pyo.Constraint(VRP.h, VRP.r, rule = rule13)
+
+def rule14(VRP, i, j, r):
+    return (VRP.tir[i,r] + s[i] + t[i,j] - M * (1 - VRP.xijr[i,j,r]) <= VRP.tir[j,r])
+VRP.Constraint14 = pyo.Constraint(VRP.i, VRP.j, VRP.r, rule = rule14)
+
+
+   
+
+solver = pyo.SolverFactory('cplex')
+solver.options['mipgap'] = 0.001                  
+result = solver.solve(VRP, tee = True)
+result.write()          
+print(result)
+
+color = ['black','Orange','deeppink','light green','Yellow', 'aquamarine', 'Purple','lightblue']
+
+listicons0 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[0],
+    fill_color= color[0],
+)
+
+listicons1 = BeautifyIcon(
+    icon='Square',
+    inner_icon_style='font-size:14px',
+    border_color= color[1],
+    fill_color= color[1],
+)
+
+listicons2 = BeautifyIcon(
+    icon='Circle',
+    inner_icon_style='font-size:14px',
+    border_color= color[1],
+    fill_color= color[1],
+)
+
+listicons3 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[2],
+    fill_color= color[2],
+)
+
+listicons4 = BeautifyIcon(
+    icon='Square',
+    inner_icon_style='font-size:14px',
+    border_color= color[3],
+    fill_color= color[3],
+)
+
+listicons5 = BeautifyIcon(
+    icon='Circle',
+    inner_icon_style='font-size:14px',
+    border_color= color[4],
+    fill_color= color[4],
+)
+
+listicons6 = BeautifyIcon(
+    icon='star',
+    inner_icon_style='font-size:14px',
+    border_color= color[5],
+    fill_color= color[5],
+)
+
+listicons7 = BeautifyIcon(
+    icon='Square',
+    inner_icon_style='font-size:14px',
+    border_color= color[6],
+    fill_color= color[6],
+)
+
+listicons8 = BeautifyIcon(
+    icon='Circle',
+    inner_icon_style='font-size:14px',
+    border_color= color[7],
+    fill_color= color[7],
+)
+
+
+map = fol.Map(location=[depot[0],depot[1]], tiles="CartoDB Positron", zoom_start=5, prefer_canvas = True)
+
+icons_dict = {0:listicons0,1:listicons1,2:listicons2,3:listicons3,4:listicons4,5:listicons5,
+              6:listicons6, 7:listicons7, 8:listicons8}
+             
+
+for i in range(len(VRP.Nplus)):
+    if i == 0 or i == c - 1:
+        fol.Circle([coords.iloc[i,0],coords.iloc[i,1]],radius = 120,
+                                       color = color[7],
+                                       fill_color = color[7],
+                                       fill_opacity = 0.8).add_child(fol.Popup('Depot')).add_to(map)
+    else:
+       fol.Circle([coords.iloc[i,0],coords.iloc[i,1]],radius = 20,
+                                      color = color[0],
+                                      fill_color = color[0],
+                                      fill_opacity = 0.8).add_child(fol.Popup(str(i))).add_to(map)
+   
+
+
+for r in range(V):
+    for i in range(len(VRP.Nplus)):
+        for j in range(len(VRP.Nplus)):
+            if pyo.value(VRP.xijr[i,j,r]) >= 0.99:
+                         fol.PolyLine([[coords.iloc[i,0],coords.iloc[i,1]],[coords.iloc[j,0],coords.iloc[j,1]]],color = color[r], dash_array = '0.2').add_to(map)
+                                   
+
+map.save('VRPRoutes.html')
