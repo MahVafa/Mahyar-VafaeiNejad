@@ -1,2 +1,0 @@
-MADCityMonth = calculate(sumx(values(reviewsellitem[distmonthnumber]),
-abs(averagex(values(reviewsellitem[distmonthnumber]),reviewsellitem[TotalUniqueCities])-[CityAvrMonth])))/(countrows(values(reviewsellitem[DistMonthNumber])))
